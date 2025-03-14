@@ -14,8 +14,8 @@ from datab import init_db, add_user, increment_command_count, get_user_stats, ge
 import pyktok as pyk
 
 # Получаем токен из переменных окружения или вставляем напрямую (не рекомендуется)
-TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
-ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
+#TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
+#ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
 
 bot = Bot(token=TOKEN)
 router = Router()
@@ -162,7 +162,7 @@ WEATHER_EMOJIS = {
 
 @router.message(WeatherState.waiting_for_place)
 async def get_weather(message: Message, state: FSMContext):
-    API_KEY = os.getenv("WEATHER_API_KEY", "YOUR_OPENWEATHER_API_KEY")
+    # API_KEY = os.getenv("WEATHER_API_KEY", "YOUR_OPENWEATHER_API_KEY")
     CITY = message.text.strip()
     url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric&lang=ru"
     async with aiohttp.ClientSession() as session:
