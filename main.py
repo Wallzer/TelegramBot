@@ -13,26 +13,11 @@ from aiohttp import web
 from datab import init_db, add_user, increment_command_count, get_user_stats, get_all_users
 import pyktok as pyk
 
-# Получаем токен из переменных окружения или вставляем напрямую
+# Получаем токен из переменных окружения или вставляем напрямую (не рекомендуется)
 TOKEN = os.getenv("BOT_TOKEN", "YOUR_BOT_TOKEN")
 ADMIN_ID = int(os.getenv("ADMIN_ID", "123456789"))
+
 bot = Bot(token=TOKEN)
-API_KEY = os.getenv("WEATHER_API_KEY", "YOUR_OPENWEATHER_API_KEY")
-
-#Эмодзи для погоды
-WEATHER_EMOJIS = {
-    "ясно": "☀️",
-    "облачно": "☁️",
-    "переменная облачность": "⛅",
-    "дождь": "🌧️",
-    "снег": "❄️",
-    "гроза": "⛈️",
-    "туман": "🌫️",
-    "морось": "🌦️",
-    "пасмурно": "☁️",
-    "снегопад": "🌨️",
-}
-
 router = Router()
 
 # Главное меню с кнопками
@@ -47,14 +32,14 @@ main_menu = ReplyKeyboardMarkup(
     resize_keyboard=True
 )
 
-#стейты для обработки загрузи и погоды
+#состояния для работы с командами, требующими ввода от пользователя
 class DownloadState(StatesGroup):
     waiting_for_link = State()
 
 class WeatherState(StatesGroup):
     waiting_for_place = State()
 
-# /start
+# Обработчик команды /start
 @router.message(Command("start"))
 async def cmd_start(message: Message):
     await add_user(message.from_user.id)
@@ -62,6 +47,8 @@ async def cmd_start(message: Message):
         "Привет! Выбери действие на клавиатуре ниже 👇",
         reply_markup=main_menu
     )
+
+# Обработчик кнопки "❓ Помощь"
 @router.message(lambda message: message.text == "❓ Помощь")
 async def help_handler(message: types.Message):
     help_text = (
@@ -74,11 +61,13 @@ async def help_handler(message: types.Message):
     )
     await message.answer(help_text, reply_markup=main_menu)
 
+# Обработчик кнопки "📈 Статистика"
 @router.message(lambda message: message.text == "📈 Статистика")
 async def stats_handler(message: Message):
     count = await get_user_stats(message.from_user.id)
     await message.answer(f"Ты использовал команды {count} раз!", reply_markup=main_menu)
 
+# Функция для получения изображения кота
 async def cat_img(message: types.Message):
     response = requests.get("https://api.thecatapi.com/v1/images/search")
     if response.status_code == 200:
@@ -88,12 +77,14 @@ async def cat_img(message: types.Message):
     else:
         await message.answer("Не удалось получить изображение кошки!")
 
+# Обработчик кнопки "🐱 Кот"
 @router.message(lambda message: message.text == "🐱 Кот")
 async def cat_handler(message: types.Message):
     await message.answer("meow 😺", reply_markup=main_menu)
     await cat_img(message)
     await increment_command_count(message.from_user.id)
 
+# Функция для получения изображения собаки
 async def dog_img(message: types.Message):
     response = requests.get("https://api.thedogapi.com/v1/images/search")
     if response.status_code == 200:
@@ -103,12 +94,14 @@ async def dog_img(message: types.Message):
     else:
         await message.answer("Не удалось получить изображение собаки!")
 
+# Обработчик кнопки "🐶 Собака"
 @router.message(lambda message: message.text == "🐶 Собака")
 async def dog_handler(message: types.Message):
     await message.answer("woof-woof 🐶", reply_markup=main_menu)
     await dog_img(message)
     await increment_command_count(message.from_user.id)
 
+# Обработчик кнопки "🎥 Скачать TikTok"
 @router.message(lambda message: message.text == "🎥 Скачать TikTok")
 async def download_handler(message: Message, state: FSMContext):
     await message.answer("Введи ссылку ниже 📎", reply_markup=main_menu)
@@ -147,16 +140,29 @@ async def download(message: types.Message, state: FSMContext):
         await message.answer("❌ Ошибка при отправке видео.", reply_markup=main_menu)
     await state.clear()
 
+# Обработчик кнопки "☁️ Погода"
 @router.message(lambda message: message.text == "☁️ Погода")
 async def weather_handler(message: Message, state: FSMContext):
     await message.answer("Введи название города 🌍", reply_markup=main_menu)
     await state.set_state(WeatherState.waiting_for_place)
 
-
+# Словарь с эмодзи для погоды
+WEATHER_EMOJIS = {
+    "ясно": "☀️",
+    "облачно": "☁️",
+    "переменная облачность": "⛅",
+    "дождь": "🌧️",
+    "снег": "❄️",
+    "гроза": "⛈️",
+    "туман": "🌫️",
+    "морось": "🌦️",
+    "пасмурно": "☁️",
+    "снегопад": "🌨️",
+}
 
 @router.message(WeatherState.waiting_for_place)
 async def get_weather(message: Message, state: FSMContext):
-
+    API_KEY = os.getenv("WEATHER_API_KEY", "YOUR_OPENWEATHER_API_KEY")
     CITY = message.text.strip()
     url = f"http://api.openweathermap.org/data/2.5/weather?q={CITY}&appid={API_KEY}&units=metric&lang=ru"
     async with aiohttp.ClientSession() as session:
@@ -206,7 +212,6 @@ async def start_webserver():
     site = web.TCPSite(runner, "0.0.0.0", port)
     await site.start()
     print(f"Web-сервер запущен на порту {port}")
-
 
 # Основная функция запуска бота
 async def main():
